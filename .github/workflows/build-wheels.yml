@@ -23,14 +23,19 @@ jobs:
       matrix:
         python-version: [3.7, 3.8, 3.9]
         os: [ubuntu-latest, macos-latest]
-        platform: [x64]  # Deactivate x32, until fix in dipy
-        MB_ML_VER: [1, 2010]
+        platform: [x64, aarch64]  # Deactivate x32, until fix in dipy
+        MB_ML_VER: [1, 2010,2014]
         exclude:
           - os: macos-latest  # macos-10.15
             platform: x32
           - os: ubuntu-latest
             platform: x32
             python-version: 3.8
+          - os: macos-latest  # macos-10.15
+            platform: aarch64
+          - os: ubuntu-latest
+            platform: x64
+            MB_ML_VER: 2014
         include:
           - python-version: '3.10'
             os: ubuntu-latest
@@ -58,6 +63,9 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: recursive
+    - uses: docker/setup-qemu-action@v1
+      if: ${{ matrix.platform == 'aarch64' }}
+      name: Set up QEMU
     - name: Install libhdf5
       if: startsWith(matrix.os,'ubuntu')
       run: sudo apt-get install pkg-config libhdf5-103 libhdf5-dev
@@ -86,7 +94,7 @@ jobs:
       run: |
         if [ "schedule" == "${{ github.event_name }}" ] || [ "master" == "$BUILD_COMMIT" ]; then echo "ANACONDA_ORG=scipy-wheels-nightly" >> $GITHUB_ENV; else echo "ANACONDA_ORG=multibuild-wheels-staging" >> $GITHUB_ENV; fi
         if [ "schedule" == "${{ github.event_name }}" ] || [ "master" == "$BUILD_COMMIT" ]; then echo "TOKEN=$SCIPY_WHEELS_NIGHTLY_ACCESS" >> $GITHUB_ENV; else echo "TOKEN=$MULTIBUILD_WHEELS_STAGING_ACCESS" >> $GITHUB_ENV; fi
-        if [ "x32" == "${{ matrix.platform }}" ]; then echo "PLAT=i686" >> $GITHUB_ENV; else echo "PLAT=x86_64" >> $GITHUB_ENV; fi
+        if [ "x32" == "${{ matrix.platform }}" ]; then echo "PLAT=i686" >> $GITHUB_ENV; elif [ "aarch64" == "${{ matrix.platform }}" ]; then echo "PLAT=aarch64" >> $GITHUB_ENV; else echo "PLAT=x86_64" >> $GITHUB_ENV; fi
         if [ "macos-latest" == "${{ matrix.os }}" ]; then echo "TRAVIS_OS_NAME=osx" >> $GITHUB_ENV; else echo "TRAVIS_OS_NAME=${{ matrix.os }}" >> $GITHUB_ENV; fi
         if [ "schedule" == "${{ github.event_name }}" ]; then echo "TRAVIS_EVENT_TYPE=cron" >> $GITHUB_ENV; else echo "TRAVIS_EVENT_TYPE=${{ github.event_name }}" >> $GITHUB_ENV; fi
         if [ "schedule" == "${{ github.event_name }}" ]; then echo "BUILD_COMMIT=master" >> $GITHUB_ENV; else echo "BUILD_COMMIT=$BUILD_COMMIT" >> $GITHUB_ENV; fi
@@ -96,6 +104,10 @@ jobs:
       if: startsWith(matrix.os,'ubuntu') && matrix.MB_ML_VER == 2010
       run: |
         echo "DOCKER_TEST_IMAGE=$(echo multibuild/xenial_$PLAT)" >> $GITHUB_ENV
+    - name: Setup Special Environment variables for Linux aarch64
+      if: startsWith(matrix.platform,'aarch64') && matrix.MB_ML_VER == 2014
+      run: |
+        echo "DOCKER_TEST_IMAGE=$(echo multibuild/xenial_arm64v8)" >> $GITHUB_ENV
     - name: Print some Environment variable
       run: |
         echo "ANACONDA_ORG: ${ANACONDA_ORG}"
