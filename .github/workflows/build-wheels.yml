@@ -100,8 +100,8 @@ jobs:
     - name: Pin Numpy and Scipy version for aarch64
       if: startsWith(matrix.platform,'aarch64')
       run: |
-        echo "NP_BUILD_DEP=$(echo numpy==1.21.2)" >> $GITHUB_ENV;
-        echo "NP_TEST_DEP=$(echo numpy==1.21.2)" >> $GITHUB_ENV;
+        echo "NP_BUILD_DEP=$(echo numpy==1.19.4)" >> $GITHUB_ENV;
+        echo "NP_TEST_DEP=$(echo numpy==1.19.4)" >> $GITHUB_ENV;
     - name: Setup Environment variables
       run: |
         if [ "schedule" == "${{ github.event_name }}" ] || [ "master" == "$BUILD_COMMIT" ]; then echo "ANACONDA_ORG=scipy-wheels-nightly" >> $GITHUB_ENV; else echo "ANACONDA_ORG=multibuild-wheels-staging" >> $GITHUB_ENV; fi
